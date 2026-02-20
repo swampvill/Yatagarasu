@@ -7,6 +7,7 @@ export interface BridgeOptions {
 	yolo?: boolean;
 	outputFormat?: 'text' | 'json' | 'stream-json';
 	timeout?: number;
+	sessionId?: string;
 }
 
 export interface BridgeResult {
@@ -14,6 +15,8 @@ export interface BridgeResult {
 	stderr: string;
 	exitCode: number | null;
 	timedOut: boolean;
+	sessionId?: string;
+	text?: string; // JSON形式のとき parsed.response を格納
 }
 
 const DEFAULT_TIMEOUT = 120_000; // 2分
@@ -40,6 +43,11 @@ export async function runGemini(options: BridgeOptions): Promise<BridgeResult> {
 	const model = options.model || getDefaultModel();
 	if (model) {
 		args.push('-m', model);
+	}
+
+	// セッション再開
+	if (options.sessionId) {
+		args.push('--resume', options.sessionId);
 	}
 
 	// 出力形式
@@ -78,7 +86,20 @@ export async function runGemini(options: BridgeOptions): Promise<BridgeResult> {
 
 		child.on('close', (code) => {
 			clearTimeout(timer);
-			resolve({ stdout, stderr, exitCode: code, timedOut });
+
+			let sessionId: string | undefined;
+			let text: string | undefined;
+			if (options.outputFormat === 'json' && stdout) {
+				try {
+					const parsed = JSON.parse(stdout);
+					sessionId = parsed.session_id;
+					text = parsed.response;
+				} catch (e) {
+					console.error('Failed to parse JSON output from gemini CLI:', e);
+				}
+			}
+
+			resolve({ stdout, stderr, exitCode: code, timedOut, sessionId, text });
 		});
 
 		child.on('error', (err) => {
@@ -90,6 +111,24 @@ export async function runGemini(options: BridgeOptions): Promise<BridgeResult> {
 				timedOut: false,
 			});
 		});
+	});
+}
+
+/**
+ * gemini CLI のバージョンを取得する
+ */
+export async function getGeminiVersion(): Promise<string> {
+	const cliPath = getGeminiCliPath();
+	return new Promise((resolve) => {
+		const child = spawn(cliPath, ['--version'], {
+			stdio: ['ignore', 'pipe', 'pipe'],
+		});
+		let out = '';
+		child.stdout.on('data', (d: Buffer) => {
+			out += d.toString();
+		});
+		child.on('close', () => resolve(out.trim() || 'unknown'));
+		child.on('error', () => resolve('unknown'));
 	});
 }
 
