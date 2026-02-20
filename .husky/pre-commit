@@ -1,0 +1,3 @@
+#!/bin/sh
+# Use arch to ensure native arm64 execution on Apple Silicon
+arch -arm64 npx biome check --staged --no-errors-on-unmatched

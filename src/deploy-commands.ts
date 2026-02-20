@@ -8,8 +8,8 @@ const clientId = process.env.DISCORD_CLIENT_ID;
 const guildId = process.env.GUILD_ID;
 
 if (!token || !clientId) {
-    console.error('❌ DISCORD_TOKEN と DISCORD_CLIENT_ID が必要です');
-    process.exit(1);
+	console.error('❌ DISCORD_TOKEN と DISCORD_CLIENT_ID が必要です');
+	process.exit(1);
 }
 
 const commands = [askCommand.data.toJSON(), modelsCommand.data.toJSON()];
@@ -17,24 +17,23 @@ const commands = [askCommand.data.toJSON(), modelsCommand.data.toJSON()];
 const rest = new REST({ version: '10' }).setToken(token);
 
 (async () => {
-    try {
-        console.log(`🔄 ${commands.length} 個のコマンドを登録中...`);
+	try {
+		console.log(`🔄 ${commands.length} 個のコマンドを登録中...`);
 
-        if (guildId) {
-            // ギルドコマンド（即座に反映）
-            await rest.put(
-                Routes.applicationGuildCommands(clientId, guildId),
-                { body: commands },
-            );
-            console.log(`✅ ギルド (${guildId}) にコマンドを登録しました`);
-        } else {
-            // グローバルコマンド（反映に最大1時間）
-            await rest.put(Routes.applicationCommands(clientId), {
-                body: commands,
-            });
-            console.log('✅ グローバルコマンドを登録しました');
-        }
-    } catch (error) {
-        console.error('❌ コマンド登録エラー:', error);
-    }
+		if (guildId) {
+			// ギルドコマンド（即座に反映）
+			await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+				body: commands,
+			});
+			console.log(`✅ ギルド (${guildId}) にコマンドを登録しました`);
+		} else {
+			// グローバルコマンド（反映に最大1時間）
+			await rest.put(Routes.applicationCommands(clientId), {
+				body: commands,
+			});
+			console.log('✅ グローバルコマンドを登録しました');
+		}
+	} catch (error) {
+		console.error('❌ コマンド登録エラー:', error);
+	}
 })();

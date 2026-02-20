@@ -1,83 +1,77 @@
 import {
-    type ChatInputCommandInteraction,
-    SlashCommandBuilder,
-    ActionRowBuilder,
-    StringSelectMenuBuilder,
-    type StringSelectMenuInteraction,
+	ActionRowBuilder,
+	type ChatInputCommandInteraction,
+	SlashCommandBuilder,
+	StringSelectMenuBuilder,
+	type StringSelectMenuInteraction,
 } from 'discord.js';
-import {
-    getAvailableModels,
-    getCurrentModel,
-    setCurrentModel,
-} from '../bridge.js';
+import { getAvailableModels, setCurrentModel } from '../bridge.js';
 import { buildModelsEmbed } from '../ui/embeds.js';
 
 export const data = new SlashCommandBuilder()
-    .setName('models')
-    .setDescription('AIモデルの一覧表示・切替');
+	.setName('models')
+	.setDescription('AIモデルの一覧表示・切替');
 
 export async function execute(
-    interaction: ChatInputCommandInteraction,
+	interaction: ChatInputCommandInteraction,
 ): Promise<void> {
-    const models = getAvailableModels();
-    const embed = buildModelsEmbed(models);
+	const models = getAvailableModels();
+	const embed = buildModelsEmbed(models);
 
-    const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId('model_select')
-        .setPlaceholder('モデルを選択')
-        .addOptions(
-            models.map((m) => ({
-                label: m.displayName,
-                value: m.name,
-                default: m.isActive,
-                emoji: m.isActive ? '🟢' : '⚪',
-            })),
-        );
+	const selectMenu = new StringSelectMenuBuilder()
+		.setCustomId('model_select')
+		.setPlaceholder('モデルを選択')
+		.addOptions(
+			models.map((m) => ({
+				label: m.displayName,
+				value: m.name,
+				default: m.isActive,
+				emoji: m.isActive ? '🟢' : '⚪',
+			})),
+		);
 
-    const row =
-        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-            selectMenu,
-        );
+	const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+		selectMenu,
+	);
 
-    await interaction.reply({
-        embeds: [embed],
-        components: [row],
-    });
+	await interaction.reply({
+		embeds: [embed],
+		components: [row],
+	});
 }
 
 /**
  * セレクトメニューのインタラクションハンドラ
  */
 export async function handleModelSelect(
-    interaction: StringSelectMenuInteraction,
+	interaction: StringSelectMenuInteraction,
 ): Promise<void> {
-    const selectedModel = interaction.values[0];
-    if (!selectedModel) return;
+	const selectedModel = interaction.values[0];
+	if (!selectedModel) return;
 
-    setCurrentModel(selectedModel);
+	setCurrentModel(selectedModel);
 
-    const models = getAvailableModels();
-    const embed = buildModelsEmbed(models);
+	const models = getAvailableModels();
+	const embed = buildModelsEmbed(models);
 
-    const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId('model_select')
-        .setPlaceholder('モデルを選択')
-        .addOptions(
-            models.map((m) => ({
-                label: m.displayName,
-                value: m.name,
-                default: m.isActive,
-                emoji: m.isActive ? '🟢' : '⚪',
-            })),
-        );
+	const selectMenu = new StringSelectMenuBuilder()
+		.setCustomId('model_select')
+		.setPlaceholder('モデルを選択')
+		.addOptions(
+			models.map((m) => ({
+				label: m.displayName,
+				value: m.name,
+				default: m.isActive,
+				emoji: m.isActive ? '🟢' : '⚪',
+			})),
+		);
 
-    const row =
-        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-            selectMenu,
-        );
+	const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+		selectMenu,
+	);
 
-    await interaction.update({
-        embeds: [embed],
-        components: [row],
-    });
+	await interaction.update({
+		embeds: [embed],
+		components: [row],
+	});
 }
