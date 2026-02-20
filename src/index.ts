@@ -10,6 +10,7 @@ import {
 import * as askCommand from './commands/ask.js';
 import * as modelsCommand from './commands/models.js';
 import { handleModelSelect } from './commands/models.js';
+import * as statusCommand from './commands/status.js';
 
 // 環境変数チェック
 const requiredEnv = ['DISCORD_TOKEN', 'DISCORD_CLIENT_ID'];
@@ -29,6 +30,7 @@ interface Command {
 const commands = new Collection<string, Command>();
 commands.set(askCommand.data.name, askCommand);
 commands.set(modelsCommand.data.name, modelsCommand);
+commands.set(statusCommand.data.name, statusCommand);
 
 // クライアント作成
 const client = new Client({
