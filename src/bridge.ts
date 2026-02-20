@@ -8,6 +8,9 @@ export interface BridgeOptions {
 	outputFormat?: 'text' | 'json' | 'stream-json';
 	timeout?: number;
 	sessionId?: string;
+	signal?: AbortSignal;
+	onStdout?: (data: string) => void;
+	onStderr?: (data: string) => void;
 }
 
 export interface BridgeResult {
@@ -15,11 +18,12 @@ export interface BridgeResult {
 	stderr: string;
 	exitCode: number | null;
 	timedOut: boolean;
+	aborted: boolean;
 	sessionId?: string;
 	text?: string; // JSON形式のとき parsed.response を格納
 }
 
-const DEFAULT_TIMEOUT = 120_000; // 2分
+const DEFAULT_TIMEOUT = 300_000; // 5分に延長
 
 export function getGeminiCliPath(): string {
 	return process.env.GEMINI_CLI_PATH || '/usr/local/bin/gemini';
@@ -70,22 +74,43 @@ export async function runGemini(options: BridgeOptions): Promise<BridgeResult> {
 		let stdout = '';
 		let stderr = '';
 		let timedOut = false;
+		let aborted = false;
 
 		const timer = setTimeout(() => {
 			timedOut = true;
 			child.kill('SIGTERM');
 		}, timeout);
 
+		const abortHandler = () => {
+			aborted = true;
+			child.kill('SIGTERM');
+		};
+
+		if (options.signal) {
+			if (options.signal.aborted) {
+				abortHandler();
+			} else {
+				options.signal.addEventListener('abort', abortHandler);
+			}
+		}
+
 		child.stdout.on('data', (data: Buffer) => {
-			stdout += data.toString();
+			const str = data.toString();
+			stdout += str;
+			options.onStdout?.(str);
 		});
 
 		child.stderr.on('data', (data: Buffer) => {
-			stderr += data.toString();
+			const str = data.toString();
+			stderr += str;
+			options.onStderr?.(str);
 		});
 
 		child.on('close', (code) => {
 			clearTimeout(timer);
+			if (options.signal) {
+				options.signal.removeEventListener('abort', abortHandler);
+			}
 
 			let sessionId: string | undefined;
 			let text: string | undefined;
@@ -99,16 +124,28 @@ export async function runGemini(options: BridgeOptions): Promise<BridgeResult> {
 				}
 			}
 
-			resolve({ stdout, stderr, exitCode: code, timedOut, sessionId, text });
+			resolve({
+				stdout,
+				stderr,
+				exitCode: code,
+				timedOut,
+				aborted,
+				sessionId,
+				text,
+			});
 		});
 
 		child.on('error', (err) => {
 			clearTimeout(timer);
+			if (options.signal) {
+				options.signal.removeEventListener('abort', abortHandler);
+			}
 			resolve({
 				stdout: '',
 				stderr: err.message,
 				exitCode: 1,
 				timedOut: false,
+				aborted: false,
 			});
 		});
 	});
