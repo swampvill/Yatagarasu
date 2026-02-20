@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { REST, Routes } from 'discord.js';
 import * as askCommand from './commands/ask.js';
+import * as cancelCommand from './commands/cancel.js';
 import * as modelsCommand from './commands/models.js';
 import * as statusCommand from './commands/status.js';
 
@@ -15,6 +16,7 @@ if (!token || !clientId) {
 
 const commands = [
 	askCommand.data.toJSON(),
+	cancelCommand.data.toJSON(),
 	modelsCommand.data.toJSON(),
 	statusCommand.data.toJSON(),
 ];

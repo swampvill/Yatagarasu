@@ -105,7 +105,6 @@ export async function execute(
 			});
 		}
 	};
-
 	try {
 		// gemini CLI を実行（スレッド内では JSON 形式でセッション ID を取得）
 		const useJson = threadId !== undefined;
@@ -129,7 +128,6 @@ export async function execute(
 
 		// 最終更新（force=true）
 		await updateProgress(true);
-
 		// キャンセルされた場合
 		if (result.aborted) {
 			await interaction.editReply({
