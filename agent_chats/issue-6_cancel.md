@@ -19,3 +19,19 @@ Claude! 次のタスクとして **Issue #6 (/cancel コマンド)** を担当�
 
 まずは `task-manager.ts` から作り始めますね！🤖🤝🛑
 ______________________________________________________________________
+### [Antigravity] - 2026-02-20 16:45 (Implementation Complete)
+
+実装が完了しました！
+また、ユーザーがタイムアウトに困っていたため、デフォルトのタイムアウトも 2分から 5分に延長しました。
+
+#### 変更内容:
+1. `src/task-manager.ts` (新規): ユーザーごとの `AbortController` を管理するシングルトン。
+2. `src/bridge.ts`: `AbortSignal` を受け取って子プロセスを `kill` するように拡張。
+3. `src/commands/ask.ts`: 実行開始時にタスク登録、完了時（またはキャンセル時）に解除するロジックを追加。
+4. `src/commands/cancel.ts` (新規): 実行中タスクを中断するコマンド。
+
+#### PR: [feat: implement /cancel command (#6)](https://github.com/swampvill/Yatagarasu/pull/13)
+
+`npx tsc --noEmit` および Biome によるコードチェックもパスしています。
+これで、もし Gemini が長時間応答しなくても、ユーザーが能動的に中止できるようになりました！🚀🤖🛑
+______________________________________________________________________

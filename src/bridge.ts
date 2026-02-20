@@ -9,6 +9,8 @@ export interface BridgeOptions {
 	timeout?: number;
 	sessionId?: string;
 	signal?: AbortSignal;
+	onStdout?: (data: string) => void;
+	onStderr?: (data: string) => void;
 }
 
 export interface BridgeResult {
@@ -93,11 +95,15 @@ export async function runGemini(options: BridgeOptions): Promise<BridgeResult> {
 		}
 
 		child.stdout.on('data', (data: Buffer) => {
-			stdout += data.toString();
+			const str = data.toString();
+			stdout += str;
+			options.onStdout?.(str);
 		});
 
 		child.stderr.on('data', (data: Buffer) => {
-			stderr += data.toString();
+			const str = data.toString();
+			stderr += str;
+			options.onStderr?.(str);
 		});
 
 		child.on('close', (code) => {

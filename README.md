@@ -73,3 +73,5 @@ Discord → Yatagarasu → gemini CLI → ローカル実行 → Embed で結果
 
 スレッド内では `sessions/map.json` でセッション ID を管理し、gemini CLI の `--resume` オプションで会話を継続します。
 ファイル添付は `uploads/` に一時保存して実行後に削除します。
+
+<!-- This is a comment added by Gemini CLI -->

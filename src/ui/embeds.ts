@@ -12,13 +12,28 @@ const COLORS = {
 /**
  * 実行中を示すEmbed
  */
-export function buildThinkingEmbed(prompt: string): EmbedBuilder {
-	return new EmbedBuilder()
+export function buildThinkingEmbed(
+	prompt: string,
+	currentOutput?: string,
+): EmbedBuilder {
+	const embed = new EmbedBuilder()
 		.setColor(COLORS.info)
-		.setTitle('🧠 伝達中...')
+		.setTitle('🧠 思考・実行中...')
 		.setDescription(`> ${truncate(prompt, 200)}`)
-		.setFooter({ text: '計画を練っています...' })
+		.setFooter({ text: '計画を練り、実行しています...' })
 		.setTimestamp();
+
+	if (currentOutput) {
+		// 最新の数行を表示
+		const lines = currentOutput.split('\n');
+		const displayLines = lines.slice(-10).join('\n');
+		embed.addFields({
+			name: '📟 現在の進行状況',
+			value: `\`\`\`\n${truncate(displayLines, 1000) || '...'}\n\`\`\``,
+		});
+	}
+
+	return embed;
 }
 
 /**

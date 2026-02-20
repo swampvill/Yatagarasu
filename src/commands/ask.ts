@@ -90,6 +90,21 @@ export async function execute(
 	// タスク登録
 	const signal = taskManager.registerTask(userId);
 
+	// 進行状況のバッファと更新タイマー
+	let bufferedOutput = '';
+	let lastUpdateTime = 0;
+	const UPDATE_INTERVAL = 2000; // 2秒
+
+	const updateProgress = async (force = false) => {
+		const now = Date.now();
+		if (force || now - lastUpdateTime >= UPDATE_INTERVAL) {
+			lastUpdateTime = now;
+			const embed = buildThinkingEmbed(finalPrompt, bufferedOutput);
+			await interaction.editReply({ embeds: [embed] }).catch(() => {
+				// rate limit 等で失敗しても継続
+			});
+		}
+	};
 	try {
 		// gemini CLI を実行（スレッド内では JSON 形式でセッション ID を取得）
 		const useJson = threadId !== undefined;
@@ -101,8 +116,18 @@ export async function execute(
 			sessionId,
 			outputFormat: useJson ? 'json' : 'text',
 			signal,
+			onStdout: (data) => {
+				bufferedOutput += data;
+				updateProgress();
+			},
+			onStderr: (data) => {
+				bufferedOutput += data;
+				updateProgress();
+			},
 		});
 
+		// 最終更新（force=true）
+		await updateProgress(true);
 		// キャンセルされた場合
 		if (result.aborted) {
 			await interaction.editReply({
