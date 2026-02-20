@@ -1,4 +1,4 @@
-# antigravity-bridge 🌉
+# Yatagarasu 🐦‍⬛🌉
 
 Discord と Antigravity を繋ぐ「伝令ボット」。  
 スマホの Discord アプリからスラッシュコマンドを送ると、ローカルPC上の Antigravity（gemini CLI）が起動してタスクを実行し、結果を Embed で返します。
@@ -38,6 +38,4 @@ npm run dev              # 開発モードで起動
 
 ## アーキテクチャ
 
-```
-Discord → antigravity-bridge → gemini CLI → ローカル実行 → Embed で結果表示
-```
+Discord → Yatagarasu → gemini CLI → ローカル実行 → Embed で結果表示

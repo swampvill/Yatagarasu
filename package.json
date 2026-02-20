@@ -1,5 +1,5 @@
 {
-	"name": "antigravity-bridge",
+	"name": "yatagarasu",
 	"version": "0.1.0",
 	"description": "Discord と Antigravity を繋ぐエージェント・ブリッジ",
 	"main": "dist/index.js",
