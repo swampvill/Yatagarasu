@@ -8,6 +8,7 @@ import {
 	type StringSelectMenuInteraction,
 } from 'discord.js';
 import * as askCommand from './commands/ask.js';
+import * as cancelCommand from './commands/cancel.js';
 import * as modelsCommand from './commands/models.js';
 import { handleModelSelect } from './commands/models.js';
 import * as statusCommand from './commands/status.js';
@@ -28,8 +29,9 @@ interface Command {
 }
 
 const commands = new Collection<string, Command>();
-commands.set(askCommand.data.name, askCommand);
-commands.set(modelsCommand.data.name, modelsCommand);
+commands.set(askCommand.data.name, askCommand as Command);
+commands.set(cancelCommand.data.name, cancelCommand as Command);
+commands.set(modelsCommand.data.name, modelsCommand as Command);
 commands.set(statusCommand.data.name, statusCommand);
 
 // クライアント作成

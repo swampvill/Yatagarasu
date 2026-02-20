@@ -4,6 +4,7 @@ import {
 } from 'discord.js';
 import { getCurrentModel, runGemini } from '../bridge.js';
 import { getSessionForThread, saveSessionForThread } from '../sessions.js';
+import { taskManager } from '../task-manager.js';
 import { buildResultEmbed, buildThinkingEmbed } from '../ui/embeds.js';
 import { cleanupUpload, isAllowedFile, saveAttachment } from '../uploads.js';
 
@@ -39,6 +40,7 @@ export async function execute(
 	const attachment = interaction.options.getAttachment('file');
 	const yolo = interaction.options.getBoolean('yolo') ?? false;
 	const workingDir = interaction.options.getString('dir') ?? undefined;
+	const userId = interaction.user.id;
 
 	// スレッド内かどうか確認してセッションを引き継ぐ
 	const threadId = interaction.channel?.isThread()
@@ -85,37 +87,61 @@ export async function execute(
 		}
 	}
 
-	// gemini CLI を実行（スレッド内では JSON 形式でセッション ID を取得）
-	const useJson = threadId !== undefined;
-	const result = await runGemini({
-		prompt: finalPrompt,
-		model: getCurrentModel(),
-		workingDir: finalWorkingDir,
-		yolo,
-		sessionId,
-		outputFormat: useJson ? 'json' : 'text',
-	});
+	// タスク登録
+	const signal = taskManager.registerTask(userId);
 
-	// スレッド内で実行した場合、セッション ID を保存
-	if (threadId && result.sessionId) {
-		await saveSessionForThread(threadId, result.sessionId).catch((err) =>
-			console.error('Failed to save session:', err),
-		);
+	try {
+		// gemini CLI を実行（スレッド内では JSON 形式でセッション ID を取得）
+		const useJson = threadId !== undefined;
+		const result = await runGemini({
+			prompt: finalPrompt,
+			model: getCurrentModel(),
+			workingDir: finalWorkingDir,
+			yolo,
+			sessionId,
+			outputFormat: useJson ? 'json' : 'text',
+			signal,
+		});
+
+		// キャンセルされた場合
+		if (result.aborted) {
+			await interaction.editReply({
+				content: '🛑 タスクはキャンセルされました。',
+				embeds: [],
+			});
+			return;
+		}
+
+		// スレッド内で実行した場合、セッション ID を保存
+		if (threadId && result.sessionId) {
+			await saveSessionForThread(threadId, result.sessionId).catch((err) =>
+				console.error('Failed to save session:', err),
+			);
+		}
+
+		// JSON形式のときは parsed text を使う。それ以外は stdout をそのまま使う
+		const displayResult = result.text
+			? { ...result, stdout: result.text }
+			: result;
+
+		// 結果を Embed に変換して更新
+		const resultEmbed = buildResultEmbed(finalPrompt, displayResult);
+		await interaction.editReply({ embeds: [resultEmbed] });
+	} catch (err) {
+		console.error('Error in ask command:', err);
+		await interaction.editReply({
+			content: '❌ 予期せぬエラーが発生しました。',
+			embeds: [],
+		});
+	} finally {
+		// タスク解除
+		taskManager.unregisterTask(userId);
+
+		// 一時ファイルを削除
+		if (uploadDir) {
+			await cleanupUpload(interaction.id).catch((err) =>
+				console.error('Failed to cleanup upload:', err),
+			);
+		}
 	}
-
-	// 一時ファイルを削除
-	if (uploadDir) {
-		await cleanupUpload(interaction.id).catch((err) =>
-			console.error('Failed to cleanup upload:', err),
-		);
-	}
-
-	// JSON形式のときは parsed text を使う。それ以外は stdout をそのまま使う
-	const displayResult = result.text
-		? { ...result, stdout: result.text }
-		: result;
-
-	// 結果を Embed に変換して更新
-	const resultEmbed = buildResultEmbed(finalPrompt, displayResult);
-	await interaction.editReply({ embeds: [resultEmbed] });
 }
