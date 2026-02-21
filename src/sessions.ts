@@ -35,3 +35,9 @@ export async function saveSessionForThread(
 	map[threadId] = sessionUuid;
 	await writeMap(map);
 }
+
+export async function clearSessionForThread(threadId: string): Promise<void> {
+	const map = await readMap();
+	delete map[threadId];
+	await writeMap(map);
+}

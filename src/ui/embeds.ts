@@ -99,6 +99,22 @@ export function buildModelsEmbed(models: ModelInfo[]): EmbedBuilder {
 }
 
 /**
+ * 承認要求を表示するEmbed
+ */
+export function buildApprovalEmbed(prompt: string): EmbedBuilder {
+	return new EmbedBuilder()
+		.setColor(COLORS.warning)
+		.setTitle('⚠️ 承認が必要です')
+		.setDescription('gemini CLI が確認を求めています。承認しますか？')
+		.addFields({
+			name: '📋 内容',
+			value: `\`\`\`\n${truncate(prompt, 1000)}\n\`\`\``,
+		})
+		.setFooter({ text: '30秒以内に応答してください' })
+		.setTimestamp();
+}
+
+/**
  * 文字列を指定長で切り詰める
  */
 function truncate(text: string, max: number): string {

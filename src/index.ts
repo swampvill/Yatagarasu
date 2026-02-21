@@ -9,9 +9,12 @@ import {
 } from 'discord.js';
 import * as askCommand from './commands/ask.js';
 import * as cancelCommand from './commands/cancel.js';
+import * as modeCommand from './commands/mode.js';
 import * as modelsCommand from './commands/models.js';
 import { handleModelSelect } from './commands/models.js';
+import * as newchatCommand from './commands/newchat.js';
 import * as statusCommand from './commands/status.js';
+import { startFileWatcher } from './watcher.js';
 
 // 環境変数チェック
 const requiredEnv = ['DISCORD_TOKEN', 'DISCORD_CLIENT_ID'];
@@ -31,7 +34,9 @@ interface Command {
 const commands = new Collection<string, Command>();
 commands.set(askCommand.data.name, askCommand as Command);
 commands.set(cancelCommand.data.name, cancelCommand as Command);
+commands.set(modeCommand.data.name, modeCommand as Command);
 commands.set(modelsCommand.data.name, modelsCommand as Command);
+commands.set(newchatCommand.data.name, newchatCommand as Command);
 commands.set(statusCommand.data.name, statusCommand);
 
 // クライアント作成
@@ -45,6 +50,12 @@ client.once(Events.ClientReady, (readyClient) => {
 	console.log(
 		`   gemini CLI: ${process.env.GEMINI_CLI_PATH || '/usr/local/bin/gemini'}`,
 	);
+
+	const watchDir = process.env.WATCH_DIR;
+	const watchChannelId = process.env.WATCH_CHANNEL_ID;
+	if (watchDir && watchChannelId) {
+		startFileWatcher(readyClient, watchChannelId, watchDir);
+	}
 });
 
 // スラッシュコマンド処理

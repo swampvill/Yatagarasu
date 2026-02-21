@@ -2,7 +2,9 @@ import 'dotenv/config';
 import { REST, Routes } from 'discord.js';
 import * as askCommand from './commands/ask.js';
 import * as cancelCommand from './commands/cancel.js';
+import * as modeCommand from './commands/mode.js';
 import * as modelsCommand from './commands/models.js';
+import * as newchatCommand from './commands/newchat.js';
 import * as statusCommand from './commands/status.js';
 
 const token = process.env.DISCORD_TOKEN;
@@ -17,7 +19,9 @@ if (!token || !clientId) {
 const commands = [
 	askCommand.data.toJSON(),
 	cancelCommand.data.toJSON(),
+	modeCommand.data.toJSON(),
 	modelsCommand.data.toJSON(),
+	newchatCommand.data.toJSON(),
 	statusCommand.data.toJSON(),
 ];
 
