@@ -11,6 +11,19 @@ export interface BridgeOptions {
 	signal?: AbortSignal;
 	onStdout?: (data: string) => void;
 	onStderr?: (data: string) => void;
+	onApprovalRequired?: (prompt: string) => Promise<boolean>;
+}
+
+const APPROVAL_PATTERN = /\[y\/N\]|\[Y\/n\]|\(y\/n\)|\(yes\/no\)/i;
+
+let yoloMode = false;
+
+export function getYoloMode(): boolean {
+	return yoloMode;
+}
+
+export function setYoloMode(enabled: boolean): void {
+	yoloMode = enabled;
 }
 
 export interface BridgeResult {
@@ -68,7 +81,7 @@ export async function runGemini(options: BridgeOptions): Promise<BridgeResult> {
 		const child = spawn(cliPath, args, {
 			cwd: options.workingDir || process.cwd(),
 			env: { ...process.env },
-			stdio: ['ignore', 'pipe', 'pipe'],
+			stdio: ['pipe', 'pipe', 'pipe'],
 		});
 
 		let stdout = '';
@@ -98,6 +111,18 @@ export async function runGemini(options: BridgeOptions): Promise<BridgeResult> {
 			const str = data.toString();
 			stdout += str;
 			options.onStdout?.(str);
+
+			if (options.onApprovalRequired && APPROVAL_PATTERN.test(str)) {
+				options
+					.onApprovalRequired(str)
+					.then((approved) => {
+						child.stdin?.write(approved ? 'y\n' : 'n\n');
+					})
+					.catch((e) => {
+						console.error('Approval handler error:', e);
+						child.stdin?.write('n\n');
+					});
+			}
 		});
 
 		child.stderr.on('data', (data: Buffer) => {

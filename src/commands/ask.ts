@@ -1,11 +1,19 @@
 import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
 	type ChatInputCommandInteraction,
+	ComponentType,
 	SlashCommandBuilder,
 } from 'discord.js';
-import { getCurrentModel, runGemini } from '../bridge.js';
+import { getCurrentModel, getYoloMode, runGemini } from '../bridge.js';
 import { getSessionForThread, saveSessionForThread } from '../sessions.js';
 import { taskManager } from '../task-manager.js';
-import { buildResultEmbed, buildThinkingEmbed } from '../ui/embeds.js';
+import {
+	buildApprovalEmbed,
+	buildResultEmbed,
+	buildThinkingEmbed,
+} from '../ui/embeds.js';
 import { cleanupUpload, isAllowedFile, saveAttachment } from '../uploads.js';
 
 export const data = new SlashCommandBuilder()
@@ -38,7 +46,7 @@ export async function execute(
 ): Promise<void> {
 	const prompt = interaction.options.getString('prompt', true);
 	const attachment = interaction.options.getAttachment('file');
-	const yolo = interaction.options.getBoolean('yolo') ?? false;
+	const yolo = interaction.options.getBoolean('yolo') ?? getYoloMode();
 	const workingDir = interaction.options.getString('dir') ?? undefined;
 	const userId = interaction.user.id;
 
@@ -105,6 +113,38 @@ export async function execute(
 			});
 		}
 	};
+	const onApprovalRequired = async (promptText: string): Promise<boolean> => {
+		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+			new ButtonBuilder()
+				.setCustomId('approve')
+				.setLabel('承認')
+				.setEmoji('✅')
+				.setStyle(ButtonStyle.Success),
+			new ButtonBuilder()
+				.setCustomId('reject')
+				.setLabel('拒否')
+				.setEmoji('❌')
+				.setStyle(ButtonStyle.Danger),
+		);
+
+		const approvalMsg = await interaction.followUp({
+			embeds: [buildApprovalEmbed(promptText)],
+			components: [row],
+		});
+
+		try {
+			const btn = await approvalMsg.awaitMessageComponent({
+				componentType: ComponentType.Button,
+				time: 30_000,
+			});
+			await btn.update({ components: [] });
+			return btn.customId === 'approve';
+		} catch {
+			await approvalMsg.edit({ components: [] }).catch(() => {});
+			return false;
+		}
+	};
+
 	try {
 		// gemini CLI を実行（スレッド内では JSON 形式でセッション ID を取得）
 		const useJson = threadId !== undefined;
@@ -124,6 +164,7 @@ export async function execute(
 				bufferedOutput += data;
 				updateProgress();
 			},
+			onApprovalRequired: yolo ? undefined : onApprovalRequired,
 		});
 
 		// 最終更新（force=true）
